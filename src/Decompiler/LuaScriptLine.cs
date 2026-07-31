@@ -92,14 +92,27 @@ namespace LuaToolkit.Decompiler
                     }
                     break;
                 case LuaOpcode.GETUPVAL:
-                    // NOTE: child get local from parent
+                    // NOTE: R(A) = Upvalue[B], luac keeps the upvalue names in debug info,
+                    // so grab that for real names instead of "unk"
                     this.Op1 = WriteIndex(Instr.A);
                     this.Op2 = " = ";
-                    this.Op3 = WriteIndex(Instr.B);
+
+                    if (this.Func.DebugUpvalues.Count > Instr.B)
+                        this.Op3 = this.Func.DebugUpvalues[Instr.B].TrimEnd('\0');
+                    else if (this.Func.Upvalues.Count > Instr.B)
+                        this.Op3 = this.Func.Upvalues[Instr.B].ToString(); // if no debug info
+                    else
+                        this.Op3 = WriteIndex(Instr.B);
+
+                
+                    // NOTE: child get local from parent
+                    // this.Op1 = WriteIndex(Instr.A);
+                    // this.Op2 = " = ";
+                    // this.Op3 = WriteIndex(Instr.B);
 
                     // TODO: figure if an upvalue is a function or not?
-                    if(this.Func.Upvalues.Count > Instr.B)
-                        this.Op3 = this.Func.Upvalues[Instr.B].ToString();
+                    // if(this.Func.Upvalues.Count > Instr.B)
+                    //     this.Op3 = this.Func.Upvalues[Instr.B].ToString();
                     //this.Op3 = this.Func.Upvalues[Instr.B].ToString().Substring(1, this.Func.Upvalues[Instr.B].ToString().Length - 2); // this is legit for prototypes etc
                     break;
                 case LuaOpcode.GETGLOBAL:
@@ -118,10 +131,20 @@ namespace LuaToolkit.Decompiler
                     this.Op3 = $"var{Instr.A}";
                     break;
                 case LuaOpcode.SETUPVAL:
-                    // NOTE: child writes to parent locals
-                    this.Op1 = $"{WriteIndex(Instr.B)}"; // no?
+                    // NOTE: Upvalue[B] = R(A), the name lives in debug info, and
+                    // the value is just whatever reg is in A (a read, so no local)
+                    if (this.Func.DebugUpvalues.Count > Instr.B)
+                        this.Op1 = this.Func.DebugUpvalues[Instr.B].TrimEnd('\0');
+                    else
+                        this.Op1 = $"var{Instr.B}";
+                    
                     this.Op2 = " = ";
-                    this.Op3 = $"{GetConstant(Instr.A)}";
+                    this.Op3 = WriteIndex(Instr.A, false);
+
+                    // NOTE: child writes to parent locals
+                    // this.Op1 = $"{WriteIndex(Instr.B)}"; // no?
+                    // this.Op2 = " = ";
+                    // this.Op3 = $"{GetConstant(Instr.A)}";
                     break;
                 case LuaOpcode.SETTABLE:
                     this.Op1 = $"{WriteIndex(Instr.A)}[{WriteIndex(Instr.B)}]";
