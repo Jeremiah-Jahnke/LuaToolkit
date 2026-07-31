@@ -12,16 +12,16 @@ namespace LuaToolkit.Cli
         {
             if (args.Length < 1)
             {
-                Console.Error.WriteLine("usage: luadec <file.luac> [more.luac ...]");
-                Console.Error.WriteLine("   decompiles compiled Lua 5.1 (.luac) files.");
+                Console.Error.WriteLine("usuage: luadec <file.luac> [more.luac ...]");
+                Console.Error.WriteLine("    decompiles compiled Lua 5.1 (.luac) back to source code.");
                 return 1;
             }
 
-            foreach (var path in args)
+            foreach(var path in args)
             {
                 if (!File.Exists(path))
                 {
-                    Console.Error.WriteLine($"File not found: {path}");
+                    Console.Error.WriteLine($"[!] File not found: {path}");
                     continue;
                 }
 

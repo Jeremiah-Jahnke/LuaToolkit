@@ -291,6 +291,7 @@ namespace LuaToolkit.Decompiler
                     this.Op2 = $"var{Instr.A}"; // func name only (used lateron)
                     
                     // Function Args
+
                     // NOTE: B tells us how many args there are; B >= 1 means B-1 fixed args,
                     // but B==0 means "everything from A+1 up to the top of the stack" which
                     // some earlier VARARG/CALL pushed there, so we dig that top up.

@@ -1,4 +1,11 @@
 .vs/*
 packages/*
-bin/
-obj/
+
+[Bb]in/
+[Oo]bj/
+
+.idea/
+*.user
+
+packages/
+*.nupkg
