@@ -28,11 +28,27 @@ namespace LuaToolkit.Decompiler
             WriteFile();
         }
 
+        private void ResClosureNames()
+        {
+            // walk every function we built and point each CLOSURE line at its child's name
+            // GetFunctionRef() got hooked up by the child in HandleUpvalues(), so by now its set
+            foreach (var f in this.LuaFunctions)
+                foreach (var line in f.GetLines())
+                    if (line.Instr != null && line.Instr.OpCode == LuaOpcode.CLOSURE && line.GetFunctionRef() != null)
+                        line.Op3 = line.GetFunctionRef().ScriptFunction.Name;
+        }
+
         private void WriteFile()
         {
             // create Script Functions
             this.Decoder.File.Function.Name = "CRoot"; // or main?
             WriteF(this.Decoder.File.Function);
+
+            // NOTE: closures point at child functions that didnt exist yet while
+            // building the parent lines, so UpdateClosures ran too early and left them as
+            // 'IDK_SHIT_WENT_MISSING_BRO' lol, now that every function is created we loop
+            // back over the closure lines and finally fill in their names
+            ResClosureNames();
 
             // NOTE: this is done on GetText
             //// allign/format/whatever each function
@@ -45,14 +61,23 @@ namespace LuaToolkit.Decompiler
         {
             CreateScripFunction(func); // root first and then inside ?
             // TODO: write functions on CLOSURE and not each list?
+            // for (int i = 0; i < func.Functions.Count; i++)
+            // {
+            //     func.Functions[i].Name = func.Name + "_" + i; // set default name
+            //     CreateScripFunction(func.Functions[i], func.ScriptFunction.Depth+1);
+            //     foreach (var f in func.Functions[i].Functions)
+            //     {
+            //         WriteF(f); // children NOTE: write children in body of parent?
+            //     }
+            // }
+            
             for (int i = 0; i < func.Functions.Count; i++)
             {
                 func.Functions[i].Name = func.Name + "_" + i; // set default name
-                CreateScripFunction(func.Functions[i], func.ScriptFunction.Depth+1);
-                foreach (var f in func.Functions[i].Functions)
-                {
-                    WriteF(f); // children NOTE: write children in body of parent?
-                }
+                // NOTE: recurse into the child itself so it (and any of ITS children) get
+                // created and named too. before this only the direct children were getting a name
+                // but grand children came out as "IDK_SHIT_WENT_MISSING_BRO"
+                WriteF(func.Functions[i]);
             }
         }
 
