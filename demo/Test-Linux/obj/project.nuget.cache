@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "xMlVE/1/0I4=",
+  "success": true,
+  "projectFilePath": "/home/jeremiah/Desktop/LuaToolkit/demo/Test-Linux/test2.csproj",
+  "expectedPackageFiles": [
+    "/home/jeremiah/.nuget/packages/newtonsoft.json/13.0.1/newtonsoft.json.13.0.1.nupkg.sha512"
+  ],
+  "logs": []
+}
