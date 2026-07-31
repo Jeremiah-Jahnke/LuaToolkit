@@ -415,7 +415,7 @@ namespace LuaToolkit.Decompiler
             if (index > 255 && targetFunc.Constants[index - 256] != null)
                 return targetFunc.Constants[index - 256].ToString();
             else
-                return WriteIndex(index);
+                return WriteIndex(index, false);
         }
 
         public void SetFunctionRef(LuaFunction func)
