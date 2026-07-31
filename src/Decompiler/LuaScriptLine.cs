@@ -268,31 +268,10 @@ namespace LuaToolkit.Decompiler
                     this.Op2 = $"var{Instr.A}"; // func name only (used lateron)
                     
                     // Function Args
-                    if(Instr.B == 0)
-                    {
-                        // func parms range from A+1 to B (B = top of stack)
-                        this.Op3 = "(";
-                        for (int i = Instr.A; i < Instr.B; i++)
-                        //for (int i = Instr.A; i < Instr.A + Instr.B - 1; ++i)
-                        {
-                            this.Op3 += $"var{i + 1}";
-                            if (i < Instr.A + Instr.B - 2)
-                                this.Op3 += ", ";
-                        }
-                        this.Op3 += ")";
-                    }
-                    else 
-                    {
-                        this.Op3 = "(";
-                        for (int i = Instr.A; i < Instr.A + Instr.B - 1; i++)
-                        //for (int i = Instr.A; i < Instr.A + Instr.B - 1; ++i)
-                        {
-                            this.Op3 += $"var{i + 1}";
-                            if (i < Instr.A + Instr.B - 2)
-                                this.Op3 += ", ";
-                        }
-                        this.Op3 += ")";
-                    }
+                    // NOTE: B tells us how many args there are; B >= 1 means B-1 fixed args,
+                    // but B==0 means "everything from A+1 up to the top of the stack" which
+                    // some earlier VARARG/CALL pushed there, so we dig that top up.
+                    this.Op3 = WriteArgs(Instr.A, Instr.B);
                     break;
                 case LuaOpcode.TAILCALL:
                     // TODO: there is something off here?
@@ -300,32 +279,9 @@ namespace LuaToolkit.Decompiler
                     // Function Name
                     this.Op1 = $"return var{Instr.A}"; // func name only (used lateron)
                     //this.Op2 = $"({Instr.A+1}";
-                    // Function Args
-                    if (Instr.B == 0)
-                    {
-                        // func parms range from A+1 to B (B = top of stack)
-                        this.Op3 = $"(";
-                        for (int i = Instr.A; i < Instr.B; i++)
-                        //for (int i = Instr.A; i < Instr.A + Instr.B - 1; ++i)
-                        {
-                            this.Op3 += $"var{i + 1}";
-                            if (i < Instr.A + Instr.B - 2)
-                                this.Op3 += ", ";
-                        }
-                        this.Op3 += ")";
-                    }
-                    else
-                    {
-                        this.Op3 = $"(";
-                        for (int i = Instr.A; i < Instr.A + Instr.B - 1; i++)
-                        //for (int i = Instr.A; i < Instr.A + Instr.B - 1; ++i)
-                        {
-                            this.Op3 += $"var{i + 1}";
-                            if (i < Instr.A + Instr.B - 2)
-                                this.Op3 += ", ";
-                        }
-                        this.Op3 += ")";
-                    }
+                    
+                    // Function Args (same B logic as CALL above)
+                    this.Op3 = WriteArgs(Instr.A, Instr.B);
                     break;
                 case LuaOpcode.RETURN:
                     // this gets overwritten by an 'end' afterwards in case its the last RETURN value of a func
@@ -501,6 +457,46 @@ namespace LuaToolkit.Decompiler
                         return "var" + index;
                 }
             }
+        }
+
+        private string WriteArgs(int funcReg, int b)
+        {
+            int argCount;
+
+            if (b == 0)
+                argCount = FindStackTop(funcReg) - funcReg; // A+1 .. top
+            else
+                argCount = b - 1; // exactly B-1 fixed args
+
+            string result = "(";
+            for (int i = 0; i < argCount; i++)
+            {
+                result += $"var{funcReg + 1 + i}";
+                if (i < argCount - 1)
+                    result += ", ";
+            }
+            result += ")";
+            return result;
+        }
+    
+
+        // NOTE: when B/C == 0 the args reach up to the 'top' of the stack, which a
+        // preceding VARARG (B==0) or CALL (C==0) pushed there. Walk back to find it
+        // and return the register that top sits on
+        private int FindStackTop(int funcReg)
+        {
+            int idx = this.Func.Instructions.IndexOf(this.Instr);
+            for (int i = idx - 1; i >= 0; i--)
+            {
+                LuaInstruction prev = this.Func.Instructions[i];
+                if (prev.A <= funcReg)
+                    continue; // not part of this call's args
+                if (prev.OpCode == LuaOpcode.VARARG && prev.B == 0)
+                    return prev.A; // varargs spill from here to top
+                if (prev.OpCode == LuaOpcode.CALL && prev.C == 0)
+                    return prev.A; // call results spill from here to top
+            }
+            return funcReg; // nothing found, no args
         }
 
         public int ToIndex(int value, out bool isConstant)
