@@ -355,12 +355,19 @@ namespace LuaToolkit.Decompiler
                 case LuaOpcode.VARARG:
                     this.Func.ScriptFunction.HasVarargs = true;
                     this.Op1 = "local ";
-                    for (int i = Instr.A; i < Instr.A+Instr.B-1; i++) 
+                    int varargCount = Instr.B == 0 ? 1 : Instr.B - 1;
+                    for (int i = 0; i < varargCount; i++)
                     {
-                        this.Op2 += $"var{i}";
-                        if (i < Instr.B - 2)
+                        this.Op2 += $"var{Instr.A + i}";
+                        if (i < varargCount - 1)
                             this.Op2 += ", ";
                     }
+                    // for (int i = Instr.A; i < Instr.A+Instr.B-1; i++) 
+                    // {
+                    //     this.Op2 += $"var{i}";
+                    //     if (i < Instr.B - 2) // <-- bug #1: should be A+b-2, not B-2
+                    //         this.Op2 += ", ";
+                    // }
                     this.Op2 += " = ..."; 
                     break;
                 default:
